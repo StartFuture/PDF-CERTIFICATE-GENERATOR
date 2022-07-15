@@ -1,11 +1,8 @@
 [
     {
-        "FIELD_1" : "Nome",
-        "FIELD_2" : "Curso",
-        "FIELD_3" : "1",
-        "FIELD_4" : "3",
-        "FIELD_5" : "2",
-        "FIELD_6" : "4",
-        "FIELD_7" : "5"
+        "FIELD_1" : "Carla Roberta Ana Fernanda de Lima",
+        "FIELD_2" : "Start Future (3 meses)",
+        "FIELD_3" : "AAAA-AAAA-AAAA-AAAA",
+        "FIELD_4" : "%%DATE%%"
     }
 ]

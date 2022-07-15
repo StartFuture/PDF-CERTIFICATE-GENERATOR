@@ -29,17 +29,18 @@ Extras:
 '''
 
 if __name__ == '__main__':
-
-    path_output = 'output'
+    
+    actual_path = os.path.dirname(os.path.abspath(__file__))
+    
+    path_output = f'{actual_path}/output'
     filename_output = 'report.pdf'
-    path_template = 'templates'
-    filename_template = 'clear_template.pdf'
-    value = "Valor Teste"
-
-    path_input_json = 'input'
-    filename_input_json = 'value_01'
-
-
+    
+    path_template = f'{actual_path}/templates'
+    filename_template = 'template.pdf'
+    
+    path_input_json = f'{actual_path}/input'
+    filename_input_json = 'value_01'  
+    
     list_infos_json = functions.read_input_json(path=path_input_json, filename=filename_input_json)
     # list_infos_csv = functions.read_input_csv(path=path_input_json, filename=filename_input_json)
     # list_infos_xlsx = functions.read_input_excel(path=path_input_json, filename=filename_input_json)

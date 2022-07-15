@@ -11,16 +11,13 @@ from PyPDF2 import PdfFileWriter, PdfFileReader
 from reportlab.pdfbase.pdfmetrics import getAscent, stringWidth
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
-from pandas import read_csv, read_excel
+# from pandas import read_csv, read_excel
 
 import utils
 import parameters
 
 MIN_X = 0
 MIN_Y = 0
-
-MAX_X = 600
-MAX_Y = 870
 
 NUMBER_MONTH_TO_NAME_MONTH = {
     '01':'Janeiro',
@@ -43,9 +40,9 @@ def process_dict_template(dict_json_input, dict_template = parameters.dict_templ
     dict_template['FIELD_2']['VALUE'] = dict_json_input['FIELD_2']
     dict_template['FIELD_3']['VALUE'] = dict_json_input['FIELD_3']
     dict_template['FIELD_4']['VALUE'] = dict_json_input['FIELD_4']
-    dict_template['FIELD_5']['VALUE'] = dict_json_input['FIELD_5']
-    dict_template['FIELD_6']['VALUE'] = dict_json_input['FIELD_6']
-    dict_template['FIELD_7']['VALUE'] = dict_json_input['FIELD_7']
+    # dict_template['FIELD_5']['VALUE'] = dict_json_input['FIELD_5']
+    # dict_template['FIELD_6']['VALUE'] = dict_json_input['FIELD_6']
+    # dict_template['FIELD_7']['VALUE'] = dict_json_input['FIELD_7']
     return dict_template
 
 
@@ -66,46 +63,59 @@ def read_input_json(path : str, filename : str):
             logging.warning('Json Invalido')
     return dict_infos
 
+def register_font(font_name : str):
+    actual_path = os.path.dirname(os.path.abspath(__file__))
+    font_path = os.path.join(actual_path, 'fonts', font_name + '.ttf')
+    
+    pdfmetrics.registerFont(TTFont(font_name, font_path))
+    return True
 
-def read_input_csv(path : str, filename : str):
-    full_path = str(os.path.join(utils.process_str_to_lower(path), utils.process_str_to_lower(filename)).strip())
-    df_input = read_csv(full_path + '.csv', header=0, delimiter=";", encoding=parameters.ENCODING_ISO_8859_1,low_memory=False, dtype=str)
-    records_input = df_input.to_dict("records")
-    return records_input
-
-
-def read_input_excel(path : str, filename : str):
-    full_path = str(os.path.join(utils.process_str_to_lower(path), utils.process_str_to_lower(filename)).strip())
-    df_input = read_excel(full_path + '.xlsx', "input", dtype=str)
-    records_input = df_input.to_dict("records")
-    return records_input
-
-def save_input_in_ram(dict_values : dict):
+def save_input_in_ram(dict_values : dict, height : int, weight : int):
     packet = io.BytesIO()
-    can = canvas.Canvas(packet, pagesize=landscape(LETTER))
+    can = canvas.Canvas(packet, pagesize=(weight, height))
 
-    pdfmetrics.registerFont(TTFont('Playfair Display', 'PlayfairDisplay-Regular.ttf'))
+    # actual_path = os.path.dirname(os.path.abspath(__file__))
+    
+    # font_name = 'PlayfairDisplay-Regular.ttf'
+    # font_path = os.path.join(actual_path, 'fonts', font_name)
+    
+    # pdfmetrics.registerFont(TTFont('Playfair Display', font_path))
+    
+    register_font('Poppins-Bold')
 
     for item in dict_values.values():
-        if 'STYLE' == '1':
+        # print(item)
+        if item['STYLE'] == '1':
+            # print(item)
             can.setFillColorRGB(r=255, g=255, b=255)
-            can.setFont(psfontname='Playfair Display', size=56) 
-        elif 'STYLE' == '2':
-            can.setFillColorRGB(r=198, g=149, b=82)
-            can.setFont(psfontname='Times-Roman', size=16) 
-        elif 'STYLE' == '3':
+            can.setFont(psfontname='Poppins-Bold', size=60) 
+        elif item['STYLE'] == '2':
             can.setFillColorRGB(r=255, g=255, b=255)
-            can.setFont(psfontname='Times-Roman', size=12) 
+            can.setFont(psfontname='Poppins-Bold', size=40) 
         
+        
+        if 'SPECIAL' in item:
+            if item['SPECIAL'] == 'DATE_TODAY':
+                item['VALUE'] = str(datetime.today().strftime('%d/%m/%Y'))
+                text_width = stringWidth(item['VALUE'], 'Poppins-Bold', 60)
+                item['CORD_X'] = (weight - text_width) / 2.0
+            elif item['SPECIAL'] == 'HUMAN_READABLE':
+                text_width = stringWidth(item['VALUE'], 'Poppins-Bold', 60)
+                item['CORD_X'] = (weight - text_width) / 2.0
         can.drawString(float(item['CORD_X']), float(item['CORD_Y']), item['VALUE'])
-    # for cord_x in range(MIN_X + 20, MAX_X - 20, 30):
-    #     for cord_y in range(MIN_Y + 20, MAX_Y - 20, 10):
+
+    # max_y = height
+    # max_x = weight
+
+    # for cord_x in range(MIN_X + 20, max_x - 20, 200):
+    #     for cord_y in range(MIN_Y + 20, max_y - 20, 100):
     #         can.drawString(cord_x, cord_y, f'[{str(cord_x).zfill(3)}X{str(cord_y).zfill(3)}]')
     
     can.save()
     packet.seek(0)
     # create a new PDF with Reportlab
     new_pdf = PdfFileReader(packet)
+
     return new_pdf
 
 
@@ -115,7 +125,10 @@ def read_template(path : str, filename : str):
     full_path = str(os.path.join(utils.process_str_to_lower(path), utils.process_str_to_lower(filename)).strip())
     existing_pdf = PdfFileReader(open(full_path, "rb"))
     page = existing_pdf.getPage(0)
-    return page
+    height = int(page.mediaBox.getHeight())
+    weight = int(page.mediaBox.getWidth())
+    
+    return page, height, weight
 
 
 def merge_pdfs(page, new_pdf, output):
@@ -133,8 +146,8 @@ def save_fill_template(path : str, filename : str, output):
 
 
 def generate_direct_mail(path_template, filename_template, dict_values, path_input_json, filename_input_json, output):
-    new_pdf = save_input_in_ram(dict_values=dict_values)
-    page = read_template(path=utils.process_str_to_lower(path_template), filename=utils.process_str_to_lower(filename_template))
+    page, height, weight = read_template(path=utils.process_str_to_lower(path_template), filename=utils.process_str_to_lower(filename_template))
+    new_pdf = save_input_in_ram(dict_values=dict_values, height=height, weight=weight)
     output = merge_pdfs(page=page, new_pdf=new_pdf, output=output)
     # save_fill_template(path=path_output, filename=filename_output, output=output)
     return output
