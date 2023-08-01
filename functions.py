@@ -4,14 +4,11 @@ import logging
 import json
 from datetime import datetime
 
-
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4, LETTER, landscape
 from PyPDF2 import PdfFileWriter, PdfFileReader
-from reportlab.pdfbase.pdfmetrics import getAscent, stringWidth
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
-# from pandas import read_csv, read_excel
 
 import utils
 import parameters
@@ -34,15 +31,11 @@ NUMBER_MONTH_TO_NAME_MONTH = {
     '12':'Dezembro',
 }
 
-
-def process_dict_template(dict_json_input, dict_template = parameters.dict_template_mail):
-    dict_template['FIELD_1']['VALUE'] = dict_json_input['FIELD_1']
-    dict_template['FIELD_2']['VALUE'] = dict_json_input['FIELD_2']
-    dict_template['FIELD_3']['VALUE'] = dict_json_input['FIELD_3']
-    dict_template['FIELD_4']['VALUE'] = dict_json_input['FIELD_4']
-    # dict_template['FIELD_5']['VALUE'] = dict_json_input['FIELD_5']
-    # dict_template['FIELD_6']['VALUE'] = dict_json_input['FIELD_6']
-    # dict_template['FIELD_7']['VALUE'] = dict_json_input['FIELD_7']
+def process_dict_template(dict_json_input, dict_template = parameters.DICT_TEMPLATE_MAIL):
+    dict_template['NAME']['VALUE'] = dict_json_input['NAME']
+    dict_template['TITLE']['VALUE'] = dict_json_input['TITLE']
+    dict_template['CODE']['VALUE'] = dict_json_input['CODE']
+    dict_template['DATE']['VALUE'] = dict_json_input['DATE']
     return dict_template
 
 
@@ -63,6 +56,7 @@ def read_input_json(path : str, filename : str):
             logging.warning('Json Invalido')
     return dict_infos
 
+
 def register_font(font_name : str):
     actual_path = os.path.dirname(os.path.abspath(__file__))
     font_path = os.path.join(actual_path, 'fonts', font_name + '.ttf')
@@ -70,23 +64,15 @@ def register_font(font_name : str):
     pdfmetrics.registerFont(TTFont(font_name, font_path))
     return True
 
+
 def save_input_in_ram(dict_values : dict, height : int, weight : int):
     packet = io.BytesIO()
     can = canvas.Canvas(packet, pagesize=(weight, height))
 
-    # actual_path = os.path.dirname(os.path.abspath(__file__))
-    
-    # font_name = 'PlayfairDisplay-Regular.ttf'
-    # font_path = os.path.join(actual_path, 'fonts', font_name)
-    
-    # pdfmetrics.registerFont(TTFont('Playfair Display', font_path))
-    
     register_font('Poppins-Bold')
 
     for item in dict_values.values():
-        # print(item)
         if item['STYLE'] == '1':
-            # print(item)
             can.setFillColorRGB(r=255, g=255, b=255)
             can.setFont(psfontname='Poppins-Bold', size=60) 
         elif item['STYLE'] == '2':
@@ -104,25 +90,14 @@ def save_input_in_ram(dict_values : dict, height : int, weight : int):
                 item['CORD_X'] = (weight - text_width) / 2.0
         can.drawString(float(item['CORD_X']), float(item['CORD_Y']), item['VALUE'])
 
-    # max_y = height
-    # max_x = weight
-
-    # for cord_x in range(MIN_X + 20, max_x - 20, 200):
-    #     for cord_y in range(MIN_Y + 20, max_y - 20, 100):
-    #         can.drawString(cord_x, cord_y, f'[{str(cord_x).zfill(3)}X{str(cord_y).zfill(3)}]')
-    
     can.save()
     packet.seek(0)
-    # create a new PDF with Reportlab
     new_pdf = PdfFileReader(packet)
 
     return new_pdf
 
 
-def read_template(path : str, filename : str):
-    # read your existing PDF
-    # input/basic_pdf_01.pdf
-    full_path = str(os.path.join(utils.process_str_to_lower(path), utils.process_str_to_lower(filename)).strip())
+def read_template(full_path : str):
     existing_pdf = PdfFileReader(open(full_path, "rb"))
     page = existing_pdf.getPage(0)
     height = int(page.mediaBox.getHeight())
@@ -137,17 +112,22 @@ def merge_pdfs(page, new_pdf, output):
     return output
 
 
-def save_fill_template(path : str, filename : str, output):
-    # finally, write "output" to a real file
-    full_path = str(os.path.join(utils.process_str_to_lower(path), utils.process_str_to_lower(filename)).strip())
+def save_fill_template(full_path : str, output):
     outputStream = open(full_path, "wb")
     output.write(outputStream)
     outputStream.close()
 
 
-def generate_direct_mail(path_template, filename_template, dict_values, path_input_json, filename_input_json, output):
-    page, height, weight = read_template(path=utils.process_str_to_lower(path_template), filename=utils.process_str_to_lower(filename_template))
+def generate_direct_mail(path_template, dict_values):
+    output = PdfFileWriter()
+    page, height, weight = read_template(full_path=path_template)
     new_pdf = save_input_in_ram(dict_values=dict_values, height=height, weight=weight)
     output = merge_pdfs(page=page, new_pdf=new_pdf, output=output)
-    # save_fill_template(path=path_output, filename=filename_output, output=output)
     return output
+
+
+def generate_certificate(dict_input, path_template, path_output):
+
+    dict_template_mail = process_dict_template(dict_json_input=dict_input)
+    output = generate_direct_mail(path_template=path_template, dict_values=dict_template_mail)
+    save_fill_template(full_path=path_output, output=output)

@@ -4,9 +4,6 @@ def process_str_to_lower(value):
     value = str(value).strip().lower()
     return value
 
-def receive_text_break_by_max_length(text, length):
-    list_sentences = []
-
 def convert_date_from_str(value):
     value = str(value).strip()[:10]
     if value != '' and value != '-':

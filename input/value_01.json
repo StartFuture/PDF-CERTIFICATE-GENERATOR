@@ -1,8 +1,8 @@
 [
     {
-        "FIELD_1" : "Carla Roberta Ana Fernanda de Lima",
-        "FIELD_2" : "Start Future (3 meses)",
-        "FIELD_3" : "AAAA-AAAA-AAAA-AAAA",
-        "FIELD_4" : "%%DATE%%"
+        "NAME" : "Carla Roberta Ana Fernanda de Lima",
+        "TITLE" : "Start Future (3 meses)",
+        "CODE" : "AAAA-AAAA-AAAA-AAAA",
+        "DATE" : "%%DATE%%"
     }
 ]
